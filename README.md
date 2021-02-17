@@ -20,7 +20,8 @@ Dependecies
 -----------
 Script requires:
 * Pillow (Python Imaging Library fork) and
-* openpyxl (Python library to read/write Excel 2010 files)
+* openpyxl (Python library to read/write Excel 2010 files)  
+
 Install dependecies:
 * pip3 install Pillow
 * pip3 install openpyxl
