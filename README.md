@@ -28,7 +28,7 @@ Install dependecies:
 Usage
 -----
 Usage:
-    pixeliazo.py <image> [--width <int>] [--recolor] [--lang <str>]
+    pixeliazo.py <image> [--width <int>] [--colors <int>] [--lang <str>]
     pixeliazo.py (-h | --help)
 
 Options:
