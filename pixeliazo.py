@@ -13,14 +13,21 @@ small kids to understand image representation in computer science.
 The created Excel file contains 2 spreadsheets and will have the image's
 name with the suffix '.xlsx'. The first spreadsheet is a grid with values
 corresponding to the pixel colors and a legend with the indices and color
-names. The second spreadsheet has cells with backgound colors according to
-the image. Both spreadsheets' cells are square formatted.
+names.  
+
+![First spreadsheet screenshot](screenshot1.png "First spreadsheet screenshot")
+
+The second spreadsheet has cells with backgound colors according to
+the image. Both spreadsheets' cells are square formatted.  
+
+![Second spreadsheet screenshot](screenshot2.png "Second spreadsheet screenshot")
 
 Dependecies
 -----------
 Script requires:
 * Pillow (Python Imaging Library fork) and
-* openpyxl (Python library to read/write Excel 2010 files)
+* openpyxl (Python library to read/write Excel 2010 files)  
+
 Install dependecies:
 * pip3 install Pillow
 * pip3 install openpyxl
