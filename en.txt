@@ -1,0 +1,35 @@
+Paint the boxes with the appropriate colors to reveal the hidden image.
+Draw the pixels
+Painted picture
+White
+Black
+Grey
+Silver
+Red
+Lime
+Blue
+Cyan
+Yellow
+Magenta
+Purple
+Green
+Maroon
+Olive
+Navy
+Teal
+Orange
+Brown
+Pink
+Chocolate
+Dark grey
+Sky blue
+Dark green
+Dark magenta
+Gold
+Coral
+Dark orange
+Hot pink
+Khaki
+Dark khaki
+Violet
+Orange red
