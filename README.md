@@ -5,10 +5,10 @@ This script takes an image and converts it to an Excel spreadsheet with
 cells filled with numbers representing the color index values of the
 image. Image is recolored with a maximum of 32 standard common colors.
 It allows scaling down of the image and provides the option to recolor
-the image with less number of colors (between 2 and 32 inclusive).
+the image with less number of colors (between 2 and 32 inclusive).  
 
 The purpose of the script is to create educational coloring exercises for
-small kids to understand image representation in computer science.
+small kids to understand image representation in computer science.  
 
 The created Excel file contains 2 spreadsheets and will have the image's
 name with the suffix '.xlsx'. The first spreadsheet is a grid with values
@@ -43,15 +43,19 @@ Options:
 * image  
     The image filename that will be used as input.  
 * -w, --width `int`  
-    Force scaling down to the width provided. It is ignored if width is
-    greater than original width.  
+    Force scaling to the width provided. Width must be greater than 0.  
 * -c, --colors `int`  
     Recolor the image with the specified number of colors (including white).
     32 standard colors are used if omitted or not valid (between 2 and 32
     inclusive).  
 * -l, --lang `str`  
     Language to be used for the legend in the output spreadsheet. Default
-    is 'en' (English).
+    is 'en' (English).  
+* -r, --resample `str`
+    Resample filter to be used while resizing. It is ignored if resizing width
+    is not set or if an invalid option given. Available options: NEAREST, BOX,
+    BILINEAR, HAMMING, BICUBIC or LANCZOS. Use NEAREST if image is already in
+    pixel art form. Default is BICUBIC.  
 
 Examples
 --------
@@ -68,3 +72,6 @@ Examples
     Image will be rescaled and recolored and a legend with indeces
     and color names will be added. Color names and captions will have
     Greek names.
+* pixeliazo.py pixel_image.jpg -w 20 -r NEAREST  
+    Image will be rescaled using NEAREST resample filter (this is ideal if
+    your image is already in pixel art form).
