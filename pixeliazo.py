@@ -1,17 +1,17 @@
 #!/usr/bin/python3
 """Convert images to Excel spreadsheet with color index values for kids to draw.
 
-This script takes an image and converts it to an Excel spreadsheet with
-cells filled with numbers representing the color index values of the
-image. Image is recolored with a maximum of 32 standard common colors.
-It allows scaling down of the image and provides the option to recolor
-the image with less number of colors (between 2 and 32 inclusive).  
+This script takes an image and converts it to an Excel spreadsheet with cells
+filled with numbers representing the color index values of the image. Image is
+recolored with a maximum of 32 standard common colors. It allows scaling the
+image and provides the option to recolor it with less number of colors
+(between 2 and 32 inclusive).  
 
-The purpose of the script is to create educational coloring exercises for
-small kids to understand image representation in computer science.  
+The purpose of the script is to create educational coloring exercises for small
+kids to understand image representation in computer science.  
 
-The created Excel file contains 2 spreadsheets and will have the image's
-name with the suffix '.xlsx'. The first spreadsheet is a grid with values
+The created Excel file contains 2 spreadsheets and will have the image's name
+with the suffix '.xlsx'. The first spreadsheet is a grid with values
 corresponding to the pixel colors and a legend with the indices and color
 names.  
 
