@@ -1,17 +1,17 @@
 #!/usr/bin/python3
 """Convert images to Excel spreadsheet with color index values for kids to draw.
 
-This script takes an image and converts it to an Excel spreadsheet with
-cells filled with numbers representing the color index values of the
-image. Image is recolored with a maximum of 32 standard common colors.
-It allows scaling down of the image and provides the option to recolor
-the image with less number of colors (between 2 and 32 inclusive).
+This script takes an image and converts it to an Excel spreadsheet with cells
+filled with numbers representing the color index values of the image. Image is
+recolored with a maximum of 32 standard common colors. It allows scaling the
+image and provides the option to recolor it with less number of colors
+(between 2 and 32 inclusive).  
 
-The purpose of the script is to create educational coloring exercises for
-small kids to understand image representation in computer science.
+The purpose of the script is to create educational coloring exercises for small
+kids to understand image representation in computer science.  
 
-The created Excel file contains 2 spreadsheets and will have the image's
-name with the suffix '.xlsx'. The first spreadsheet is a grid with values
+The created Excel file contains 2 spreadsheets and will have the image's name
+with the suffix '.xlsx'. The first spreadsheet is a grid with values
 corresponding to the pixel colors and a legend with the indices and color
 names.  
 
@@ -35,6 +35,7 @@ Install dependecies:
 Usage
 -----
 * pixeliazo.py image [--width `int`] [--colors `int`] [--lang `str`]
+[--resample `str`]
 * pixeliazo.py (-h | --help)
 
 Options:  
@@ -43,15 +44,19 @@ Options:
 * image  
     The image filename that will be used as input.  
 * -w, --width `int`  
-    Force scaling down to the width provided. It is ignored if width is
-    greater than original width.  
+    Force scaling to the width provided. Width must be greater than 0.  
 * -c, --colors `int`  
     Recolor the image with the specified number of colors (including white).
     32 standard colors are used if omitted or not valid (between 2 and 32
     inclusive).  
 * -l, --lang `str`  
     Language to be used for the legend in the output spreadsheet. Default
-    is 'en' (English).
+    is 'en' (English).  
+* -r, --resample `str`  
+    Resample filter to be used while resizing. It is ignored if resizing width
+    is not set or if an invalid option given. Available options: NEAREST, BOX,
+    BILINEAR, HAMMING, BICUBIC or LANCZOS. Use NEAREST if image is already in
+    pixel art form. Default is BICUBIC.  
 
 Examples
 --------
@@ -68,6 +73,9 @@ Examples
     Image will be rescaled and recolored and a legend with indeces
     and color names will be added. Color names and captions will have
     Greek names.
+* pixeliazo.py pixel_image.jpg -w 20 -r NEAREST  
+    Image will be rescaled using NEAREST resample filter (this is ideal if
+    your image is already in pixel art form).
 """
 
 import sys #System
@@ -137,7 +145,9 @@ def get_colors_legend(image):
         hexcolor=''
         for v in colorvalue: hexcolor+=f'{v:02X}'
         #Add to dictionary
-        legend[color]=(counter,get_color_index(colorvalue,PALETTE_DATA),hexcolor)
+        legend[color]=(counter,
+                       get_color_index(colorvalue,PALETTE_DATA),
+                       hexcolor)
         counter+=1
     return legend #Mapping done
 
@@ -166,20 +176,32 @@ def create_workbook(filename,image,captions,colornames):
     ws2=wb.create_sheet(title=captions[2]) #Create 2nd worksheet and set title
     for ws in wb.worksheets: 
         ws.page_setup.fitToPage=True #Fit to one page
-        for x in range(image.width + (3 if ws==ws1 else 0)): #3 extra columns for the legend
-            ws.column_dimensions[get_column_letter(x+1)].width=2.857 #20 pixels, default row height is the same
+        for x in range(image.width + (3 if ws==ws1 else 0)):
+            #We need 3 extra columns for the legend
+            #The following equals 20 pixels, default row height is the same
+            ws.column_dimensions[get_column_letter(x+1)].width=2.857   
     #Write the legend
     #Get map of image palette colors to our color names
     colorlegend=get_colors_legend(image)
     for value in colorlegend.values():
-        ws1.cell(column=image.width+2,row=value[0]+4,value=value[0]) #Numbers of colors
+        #Numbers of colors
+        ws1.cell(column=image.width+2,row=value[0]+4,value=value[0])
         ws1.cell(column=image.width+3,row=value[0]+4,value='=') #Equal sign
-        ws1.cell(column=image.width+3,row=value[0]+4).alignment=Alignment(horizontal='center') #Center equal signs
-        ws1.cell(column=image.width+4,row=value[0]+4,value=colornames[value[1]]) #Color names
+        #Center equal signs
+        ws1.cell(column=image.width+3,row=value[0]+4).alignment=Alignment(
+            horizontal='center')
+        #Color names
+        ws1.cell(column=image.width+4,row=value[0]+4,value=colornames[value[1]])
     #Legend caption
-    ws1.merge_cells(start_row=1,start_column=image.width+2,end_row=3,end_column=image.width+6) #Merge cells
-    ws1.cell(row=1,column=image.width+2,value=captions[0]) #Set value
-    ws1.cell(row=1,column=image.width+2).alignment=Alignment(horizontal='left', vertical='top',wrap_text=True) #Align and wrap text
+    ws1.merge_cells(start_row=1,
+                    start_column=image.width+2,
+                    end_row=3,
+                    end_column=image.width+6) #Merge legend caption cells
+    #Set value for legend caption
+    ws1.cell(row=1,column=image.width+2,value=captions[0]) 
+    #Align and wrap text
+    ws1.cell(row=1,column=image.width+2).alignment=Alignment(
+        horizontal='left', vertical='top',wrap_text=True)
     #Fill cells with values or colors according to pixels
     #Take care of white color which is not listed in colorlegend
     whitecolorindex=get_color_index([255,255,255],image.getpalette())
@@ -194,7 +216,8 @@ def create_workbook(filename,image,captions,colornames):
             ws1.cell(column=x+1,row=y+1).border=thin_border
             if color!=whitecolorindex:
                 ws1.cell(column=x+1,row=y+1,value=colorlegend[color][0])
-                ws2.cell(column=x+1,row=y+1).fill=PatternFill(fill_type='solid',start_color=colorlegend[color][2])
+                ws2.cell(column=x+1,row=y+1).fill=PatternFill(
+                    fill_type='solid',start_color=colorlegend[color][2])
     try:
         wb.save(filename=filename) #Save the workbook
     except:
@@ -218,7 +241,8 @@ def load_language(lang):
     """
     
     #Set predefined (English) text variables
-    captions=['Paint the boxes with the appropriate colors to reveal the hidden image.',
+    captions=['Paint the boxes with the appropriate colors to reveal the hidden '
+              'image.',
               'Draw the pixels',
               'Painted picture']
     colornames=COLORNAMES #Point to English color names    
@@ -229,7 +253,8 @@ def load_language(lang):
                 temp_captions=temp_list[:3]
                 temp_colornames=temp_list[3:]
             if len(temp_captions)!=3 or len(temp_colornames)!=32:
-                #Propably not a valid language file. Raise error and fallback to English.
+                #Propably not a valid language file.
+                #Raise error and fallback to English.
                 raise IOError('Not a valid language file.')
             #Loading language file done correctly. Keep read values.
             captions=temp_captions
@@ -238,18 +263,23 @@ def load_language(lang):
             print('Error loading language file. English will be used.')
     return (captions,colornames) #Return a tuple with 2 lists
 
-def process_image(image,width,colors):
+def process_image(image,width,colors,resample):
     """Function to load and process image file.
 
-    Loads the input file and converts it to RGB mode. The scales down image
+    Loads the input file and converts it to RGB mode. Then scales image
     if choosen by the user. Recolors to 32 standard colors and recolors again
     to less colors if choosen.
 
     Parameters:
         image:    Input image filename, String object.
-        width:    The desired width to scale down the image, integer.
+        width:    The desired width to scale the image, integer greater than 0
+                  or None.
         colors:   Number of colors to be used for recoloring (between 2 and 32
                   inclusive), integer.
+        resample: Filter to use for resizing. String object (case insensitive)
+                  or None. Available options: 'NEAREST', 'BOX', 'BILINEAR',
+                  'HAMMING', 'BICUBIC' or 'LANCZOS'.
+                  If None or invalid, then 'BICUBIC' is used.
 
     Returns:
         PIL.Image object with the image scaled down and recolored as defined by
@@ -263,11 +293,25 @@ def process_image(image,width,colors):
         print('Error reading image file:',image)
         return None
     img=img.convert('RGB') #Ensure image is in RGB mode
-    if width and width<img.width and width>=1: #Scale down if needed
-        img = img.resize((width, int(width*img.height/img.width)),Image.BILINEAR)
+    if width and width>0: #Scale if needed
+        resample=resample.upper() #Ignore case
+        #Make a dictionary to map Strings to PIL.Image values
+        filters={'NEAREST':Image.NEAREST,
+                 'BOX':Image.BOX,
+                 'BILINEAR':Image.BILINEAR,
+                 'HAMMING':Image.HAMMING,
+                 'BICUBIC':Image.BICUBIC,
+                 'LANCZOS':Image.LANCZOS}
+        try:
+            res_filter=filters[resample] #Key error here if invalid
+        except:
+            print('Invalid resample filter. BICUBIC will be used')
+            res_filter=Image.BICUBIC
+        img = img.resize(size=(width, int(width*img.height/img.width)),
+                         resample=res_filter)
     elif width:
-        print('Invalid width given. Scaling down will not be done.')
-    #Do recoloring to standard 32 colors palette
+        print('Invalid width given. Scaling will not be done.')
+     #Do recoloring to standard 32 colors palette
     palimage = Image.new('P',(16,16))
     palimage.putpalette(PALETTE_DATA+[0]*(768-len(PALETTE_DATA)))
     #Quantize image, no dithering, we want pixels to be seen
@@ -294,16 +338,24 @@ def parse_arguments():
     parser.add_argument('image',
                         help='The image filename that will be used as input.')
     parser.add_argument('-w','--width',type=int,
-                        help=('Force scaling down to the width provided. It '
-                              'is ignored if width is greater than original width.'))
+                        help=('Force scaling to the width provided. It '
+                              'is ignored if width is greater than original '
+                              'width.'))
     parser.add_argument('-c','--colors',type=int,default=32,
                         help=('Recolor the image with the specified number of '
-                              'colors (including white). 32 standard colors are '
-                              'used if omitted or not valid (between 2 and 32 '
+                              'colors (including white). 32 standard colors are'
+                              ' used if omitted or not valid (between 2 and 32 '
                               'inclusive).'))
     parser.add_argument('-l','--lang',default='en',
-                        help=('Language to be used for the legend in the output '
-                              'spreadsheet. Default is \'en\' (English).'))
+                        help=('Language to be used for the legend in the output'
+                              ' spreadsheet. Default is \'en\' (English).'))
+    parser.add_argument('-r','--resample',default='BICUBIC',
+                        help=('Resample filter to be used while resizing. It '
+                              'is ignored if resizing width is not set or '
+                              'if an invalid option given. Available options: '
+                              'NEAREST, BOX, BILINEAR, HAMMING, BICUBIC or '
+                              'LANCZOS. Use NEAREST if image is already in'
+                              'pixel art form. Default is BICUBIC.'))
     return parser.parse_args() #Do the parsing
     
 def main():
@@ -319,7 +371,8 @@ def main():
     """
     
     args=parse_arguments() #Parse the arguments
-    img=process_image(args.image,args.width,args.colors) #Load and process image
+    #Load and process image
+    img=process_image(args.image,args.width,args.colors,args.resample)
     if not img: #Exit if error occured while processing image
         return 1
     captions,colornames=load_language(args.lang) #Load language file
