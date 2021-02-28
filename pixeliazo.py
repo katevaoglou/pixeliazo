@@ -52,7 +52,7 @@ Options:
 * -l, --lang `str`  
     Language to be used for the legend in the output spreadsheet. Default
     is 'en' (English).  
-* -r, --resample `str`
+* -r, --resample `str`  
     Resample filter to be used while resizing. It is ignored if resizing width
     is not set or if an invalid option given. Available options: NEAREST, BOX,
     BILINEAR, HAMMING, BICUBIC or LANCZOS. Use NEAREST if image is already in
