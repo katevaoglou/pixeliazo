@@ -35,6 +35,7 @@ Install dependecies:
 Usage
 -----
 * pixeliazo.py image [--width `int`] [--colors `int`] [--lang `str`]
+[--resample `str`]
 * pixeliazo.py (-h | --help)
 
 Options:  
