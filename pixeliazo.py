@@ -47,8 +47,8 @@ Options:
     Force scaling to the width provided. Width must be greater than 0.  
 * -c, --colors `int`  
     Recolor the image with the specified number of colors (including white).
-    32 standard colors are used if omitted or not valid (between 2 and 32
-    inclusive).  
+    32 standard colors are used if omitted. Valid values are between 2 and 32
+    inclusive.  
 * -l, --lang `str`  
     Language to be used for the legend in the output spreadsheet. Default
     is 'en' (English).  
@@ -83,7 +83,7 @@ import argparse #Argument parsing
 from PIL import Image,ImageColor #Python Image Library
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment,PatternFill,Border,Side
+from openpyxl.styles import NamedStyle,Alignment,PatternFill,Border,Side
 
 #List of color names in English
 COLORNAMES=['White','Black','Grey','Silver',
@@ -98,6 +98,8 @@ COLORNAMES=['White','Black','Grey','Silver',
 PALETTE_DATA=[]
 for n in COLORNAMES:
     PALETTE_DATA.extend(ImageColor.getrgb(n.replace(" ", "")))
+#Resample filter names from PIL.Image
+FILTERS=['NEAREST','BOX','BILINEAR','HAMMING','BICUBIC','LANCZOS']
 
 def get_color_index(color,palette):
     """Returns the index of color in palette.
@@ -206,18 +208,20 @@ def create_workbook(filename,image,captions,colornames):
     #Take care of white color which is not listed in colorlegend
     whitecolorindex=get_color_index([255,255,255],image.getpalette())
     #Border for cells in first worksheet
-    thin_border = Border(left=Side(style='thin'), 
-                         right=Side(style='thin'), 
-                         top=Side(style='thin'), 
-                         bottom=Side(style='thin'))
-    for x in range(image.width):
-        for y in range(image.height):
-            color=image.getpixel((x,y))
-            ws1.cell(column=x+1,row=y+1).border=thin_border
-            if color!=whitecolorindex:
-                ws1.cell(column=x+1,row=y+1,value=colorlegend[color][0])
-                ws2.cell(column=x+1,row=y+1).fill=PatternFill(
-                    fill_type='solid',start_color=colorlegend[color][2])
+    thin_border_style=NamedStyle(name='thin_border_style')
+    sb=Side(style='thin')
+    thin_border_style.border = Border(left=sb,right=sb,top=sb,bottom=sb)
+    wb.add_named_style(thin_border_style)
+    #Get image data and process them
+    pixelnumber=0
+    for color in image.getdata():
+        y,x=divmod(pixelnumber,image.width)
+        pixelnumber+=1
+        ws1.cell(column=x+1,row=y+1).style='thin_border_style'
+        if color!=whitecolorindex:
+            ws1.cell(column=x+1,row=y+1).value=colorlegend[color][0]
+            ws2.cell(column=x+1,row=y+1).fill=PatternFill(
+                fill_type='solid',start_color=colorlegend[color][2])
     try:
         wb.save(filename=filename) #Save the workbook
     except:
@@ -266,16 +270,15 @@ def load_language(lang):
 def process_image(image,width,colors,resample):
     """Function to load and process image file.
 
-    Loads the input file and converts it to RGB mode. Then scales image
-    if choosen by the user. Recolors to 32 standard colors and recolors again
-    to less colors if choosen.
-
+    Loads the input file and converts it to RGB mode if needed. Then scales
+    image if choosen by the user. Reduces number of colors and maps colors to
+    module's standard palette (PALETTE_DATA).
+    
     Parameters:
         image:    Input image filename, String object.
         width:    The desired width to scale the image, integer greater than 0
                   or None.
-        colors:   Number of colors to be used for recoloring (between 2 and 32
-                  inclusive), integer.
+        colors:   Number of colors to be used for recoloring, positive integer.
         resample: Filter to use for resizing. String object (case insensitive)
                   or None. Available options: 'NEAREST', 'BOX', 'BILINEAR',
                   'HAMMING', 'BICUBIC' or 'LANCZOS'.
@@ -292,37 +295,55 @@ def process_image(image,width,colors,resample):
     except:
         print('Error reading image file:',image)
         return None
-    img=img.convert('RGB') #Ensure image is in RGB mode
+    if img.mode!='RGB':
+        img=img.convert('RGB') #Convert image to RGB mode    
     if width and width>0: #Scale if needed
-        resample=resample.upper() #Ignore case
-        #Make a dictionary to map Strings to PIL.Image values
-        filters={'NEAREST':Image.NEAREST,
-                 'BOX':Image.BOX,
-                 'BILINEAR':Image.BILINEAR,
-                 'HAMMING':Image.HAMMING,
-                 'BICUBIC':Image.BICUBIC,
-                 'LANCZOS':Image.LANCZOS}
-        try:
-            res_filter=filters[resample] #Key error here if invalid
-        except:
-            print('Invalid resample filter. BICUBIC will be used')
-            res_filter=Image.BICUBIC
-        img = img.resize(size=(width, int(width*img.height/img.width)),
+        res_filter=Image.BICUBIC #Default if resample is None or invalid
+        if resample: #Not None
+            try:
+                #AttributeError here if resample is invalid
+                res_filter=eval('Image.'+resample.upper())
+            except:
+                print('Invalid resample filter. BICUBIC will be used')
+        img=img.resize(size=(width, int(width*img.height/img.width)),
                          resample=res_filter)
     elif width:
         print('Invalid width given. Scaling will not be done.')
-     #Do recoloring to standard 32 colors palette
+    #Quantize to less colors
+    #Max Coverage is important here, does not mess with colors
+    img=img.quantize(colors=colors,method=Image.MAXCOVERAGE)
+    img=img.convert('RGB') #Convert again to RGB mode (quantize made it P mode)
+    #Do recoloring to standard 32 colors palette
     palimage = Image.new('P',(16,16))
-    palimage.putpalette(PALETTE_DATA+[0]*(768-len(PALETTE_DATA)))
-    #Quantize image, no dithering, we want pixels to be seen
-    img=img.quantize(palette=palimage, dither=0) 
-    if colors<2 or colors>32: #Number of colors out of valid range
-        print(('Invalid number of colors. It should be between 2 and 32 '
-               'inclusive. 32 standard colors will be used instead.'))
-    elif colors!=32: #Recolor to less colors if choosen
-        #Max Coverage is important here, does not mess with colors
-        img=img.quantize(colors=colors,method=Image.MAXCOVERAGE)
+    palimage.putpalette(PALETTE_DATA+[0]*(768-len(PALETTE_DATA)))   
+    #Quantize image, no dithering, we want sharp image
+    img=img.quantize(palette=palimage, dither=0)
     return img #Return the PIL.Image object
+
+def number_of_colors(value):
+    """Function for parsing number of colors argument.
+
+    Parameters:
+        value:    String that contains an integer
+        
+    Raises:
+        argparse.ArgumentTypeError if value is not integer
+        or out of valid range.
+
+    Returns:
+        Integer value of value parameter
+    """
+
+    error=(f'\'{value}\' is an invalid number of '
+           'colors. Use integer between 2 and '
+           '32 inclusive.')
+    try:
+        ivalue=int(value)
+    except:
+        raise argparse.ArgumentTypeError(error)
+    if ivalue<2 or ivalue>32:
+        raise argparse.ArgumentTypeError(error)
+    return ivalue
 
 def parse_arguments():
     """Function to parse command line arguments.
@@ -334,22 +355,23 @@ def parse_arguments():
         A Namespace object with the arguments.
     """
 
-    parser = argparse.ArgumentParser() #Create an ArgumentParser
+    parser=argparse.ArgumentParser() #Create an ArgumentParser
     parser.add_argument('image',
                         help='The image filename that will be used as input.')
     parser.add_argument('-w','--width',type=int,
                         help=('Force scaling to the width provided. It '
                               'is ignored if width is greater than original '
                               'width.'))
-    parser.add_argument('-c','--colors',type=int,default=32,
+    parser.add_argument('-c','--colors',type=number_of_colors,default=32,
                         help=('Recolor the image with the specified number of '
-                              'colors (including white). 32 standard colors are'
-                              ' used if omitted or not valid (between 2 and 32 '
-                              'inclusive).'))
+                              'colors (including white). 32 standard colors '
+                              'are used if omitted. Valid values are between '
+                              '2 and 32 inclusive).'))
     parser.add_argument('-l','--lang',default='en',
                         help=('Language to be used for the legend in the output'
                               ' spreadsheet. Default is \'en\' (English).'))
-    parser.add_argument('-r','--resample',default='BICUBIC',
+    parser.add_argument('-r','--resample',type=str.upper,default='BICUBIC',
+                        choices=FILTERS,
                         help=('Resample filter to be used while resizing. It '
                               'is ignored if resizing width is not set or '
                               'if an invalid option given. Available options: '
